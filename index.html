@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+
+  <!-- Bootstrap CSS -->
+  <!-- <link rel="stylesheet" href="./css/bootstrap.css"> -->
+  <!-- JQ -->
+  <script src="./js/jquery-3.4.1.min.js"></script>
+  <!-- dt -->
+  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/v/bs4-4.1.1/dt-1.10.20/datatables.min.css" />
+  <script type="text/javascript" src="https://cdn.datatables.net/v/bs4-4.1.1/dt-1.10.20/datatables.min.js"></script>
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css"
+    integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+    crossorigin="" />
+  <style>
+    html,
+    body {
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    #map {
+      width: 50vw;
+      height: 100vh;
+    }
+  </style>
+  <title>Hello, world!</title>
+</head>
+
+<body>
+  <div id="app" class="container-fluid">
+    <div class="row">
+      <div class="col-6 p-0 fixed-top">
+        <div id="map"></div>
+      </div>
+      <div class="col-6 p-0 ">
+      </div>
+      <div class="col-6">
+        <h1>垃圾車追蹤器</h1>
+        <table id="myTable" class="table table-hover">
+          <thead>
+            <tr>
+              <th>行政區</th>
+              <th>清運路線編號</th>
+              <th>車牌號碼</th>
+              <th>所在地</th>
+              <th>最後出沒時間</th>
+            </tr>
+          </thead>
+          <tbody>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet.js -->
+  <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"
+    integrity="sha512-nMMmRyTVoLYqjP9hrbed9S+FzjZHW5gY1TWCHA5ckwXZBadntCNs8kEqAWdrb9O7rxbCaA4lKTIWjDXZxflOcA=="
+    crossorigin=""></script>
+  <script>
+
+  </script>
+
+  <!-- api -->
+  <script>
+    let data, print, map
+    // car api
+    $.getJSON('curl_car_api.php')
+      .done((e) => {
+        // console.log(e)
+        data = e
+        // dt
+        for (let i = 0; i < e.length; i++) {
+          print += `
+          <tr>
+              <td>${e[i].cityname}</td>
+              <td>${e[i].lineid}</td>
+              <td>${e[i].car}</td>
+              <td>
+              ${e[i].location}
+              <div style="display:none">${e[i].longitude}</div>
+              <div style="display:none">${e[i].latitude}</div>
+              </td>
+              <td>${e[i].time}</td>
+          </tr>
+        `
+        }
+        $('tbody').html(print)
+        $('#myTable').DataTable();
+
+        $('#myTable').on('search.dt', function () {
+            console.log(1)
+          $('tbody tr').click(function () {
+            console.log(2)
+
+            let lng = $(this).find('div').eq(0).text()
+            let lat = $(this).find('div').eq(1).text()
+            map.setView([lat, lng], 20)
+          })
+        });
+
+        // map
+        let userlat = 0, userlng = 0
+
+        navigator.geolocation.watchPosition((position) => {
+          userlat = position.coords.latitude;
+          userlng = position.coords.longitude;
+
+        map = L.map('map').setView([userlat, userlng], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '<a href="https://www.openstreetmap.org/">OSM</a>',
+          maxZoom: 18,
+        }).addTo(map);
+
+        // marker
+
+        var marker = [];
+
+        for (let i = 0; i < e.length; i++) {
+          marker[i] = L.marker([data[i].latitude, data[i].longitude]);
+          marker[i].addTo(map);
+          $('#map').find('.leaflet-shadow-pane').remove()
+          $('#map').find('.leaflet-marker-pane').children().eq(i).attr('src', './images/directions_car-24px.svg').css('filter', 'drop-shadow(0px 0px 5px #fff)')
+        }
+
+        //event
+        $('tbody tr').click(function () {
+          let lng = $(this).find('div').eq(0).text()
+          let lat = $(this).find('div').eq(1).text()
+          map.setView([lat, lng], 20)
+        })
+
+        })
+
+      })
+      .fail(() => {
+        alert('car error!')
+      })
+    // spot api
+    $.getJSON('curl_spot_api.php')
+      .done((e) => {
+        console.log(e.length)
+        // data = e
+      }).fail(() => {
+        alert('spot error!')
+      })
+
+
+
+
+
+
+  </script>
+</body>
+
+</html>
